@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рисование на изображении</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        #colorPicker {
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        
+        #brushSize {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <h1>Рисование на изображении</h1>
+    
+    <div class="container">
+        <img id="image" src="Screenshot_3.png" alt="Ваше изображение">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <input type="color" id="colorPicker" value="#000000">
+        <span>Размер кисти: </span>
+        <input type="range" id="brushSize" min="1" max="50" value="5">
+        <button id="clearBtn">Очистить</button>
+        <button id="eraseBtn">Ластик</button>
+        <button id="drawBtn">Кисть</button>
+    </div>
+    <p>By Potapchenko Maxim 2025</p>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const img = document.getElementById('image');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const colorPicker = document.getElementById('colorPicker');
+            const brushSize = document.getElementById('brushSize');
+            const clearBtn = document.getElementById('clearBtn');
+            const eraseBtn = document.getElementById('eraseBtn');
+            const drawBtn = document.getElementById('drawBtn');
+            
+            let isDrawing = false;
+            let currentTool = 'draw'; // 'draw' или 'erase'
+            
+            // Устанавливаем размеры canvas равными размерам изображения
+            function resizeCanvas() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                // Если изображение еще не загружено, ждем его загрузки
+                if (img.width === 0) {
+                    img.onload = resizeCanvas;
+                }
+            }
+            
+            // Инициализация
+            resizeCanvas();
+            
+            // Обработчики событий для рисования
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Сенсорные события
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleTouchEnd);
+            
+            // Кнопки управления
+            clearBtn.addEventListener('click', clearCanvas);
+            eraseBtn.addEventListener('click', () => currentTool = 'erase');
+            drawBtn.addEventListener('click', () => currentTool = 'draw');
+            
+            function startDrawing(e) {
+                isDrawing = true;
+                draw(e);
+            }
+            
+            function draw(e) {
+                if (!isDrawing) return;
+                
+                // Получаем координаты
+                let x, y;
+                if (e.type.includes('touch')) {
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    x = touch.clientX - rect.left;
+                    y = touch.clientY - rect.top;
+                } else {
+                    x = e.offsetX;
+                    y = e.offsetY;
+                }
+                
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                
+                if (currentTool === 'draw') {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = colorPicker.value;
+                } else {
+                    ctx.globalCompositeOperation = 'destination-out';
+                }
+                
+                ctx.lineWidth = brushSize.value;
+                
+                ctx.beginPath();
+                if (lastX === 0 && lastY === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.moveTo(lastX, lastY);
+                }
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                lastX = x;
+                lastY = y;
+            }
+            
+            let lastX = 0;
+            let lastY = 0;
+            
+            function stopDrawing() {
+                isDrawing = false;
+                lastX = 0;
+                lastY = 0;
+            }
+            
+            function clearCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Обработчики для сенсорного ввода
+            function handleTouchStart(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                lastX = touch.clientX - rect.left;
+                lastY = touch.clientY - rect.top;
+                startDrawing(e);
+            }
+            
+            function handleTouchMove(e) {
+                e.preventDefault();
+                draw(e);
+            }
+            
+            function handleTouchEnd(e) {
+                e.preventDefault();
+                stopDrawing();
+            }
+        });
+    </script>
+</body>
+</html>
